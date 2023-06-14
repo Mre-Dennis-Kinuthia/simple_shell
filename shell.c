@@ -37,7 +37,6 @@ int main(int argc, char **argv)
 
         buffer[strcspn(buffer, "\n")] = '\0';
 
-        // Ignore comments
         if (buffer[0] == '#')
         {
             free(buffer);
