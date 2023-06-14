@@ -3,6 +3,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/wait.h>
+#include "builtins.h"
 
 #define MAX_TOKENS 1024
 #define BUFFER_SIZE 1024
@@ -91,27 +92,30 @@ char **parseInput(char *buffer)
     return tokens;
 }
 
-void executeCommand(char **command)
-{
+void executeCommand(char **command) {
+    if (strcmp(command[0], "setenv") == 0) {
+        setenv_builtin(command);
+        return;
+    }
+
+    if (strcmp(command[0], "unsetenv") == 0) {
+        unsetenv_builtin(command);
+        return;
+    }
+
     pid_t pid;
     int status;
 
     pid = fork();
-    if (pid == -1)
-    {
+    if (pid == -1) {
         perror("fork failed");
         exit(EXIT_FAILURE);
-    }
-    else if (pid == 0)
-    {
-        if (execvp(command[0], command) == -1)
-        {
+    } else if (pid == 0) {
+        if (execvp(command[0], command) == -1) {
             perror("execvp failed");
             exit(EXIT_FAILURE);
         }
-    }
-    else
-    {
+    } else {
         waitpid(pid, &status, 0);
     }
 }
