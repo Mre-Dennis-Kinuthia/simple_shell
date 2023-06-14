@@ -1,5 +1,5 @@
 #include "main.h"
-#include <stdlib.h>  // Include the header file for exit
+#include <stdlib.h>
 
 /**
  * main - execve example
@@ -34,7 +34,7 @@ int main(int argc, char **argv)
             {
                 free(array);
                 free(buffer);
-                exit(0);  // Call exit to terminate the shell process
+                exit(0);
             }
             exec_builtin(array, counter, argv[0]);
             free(array);
