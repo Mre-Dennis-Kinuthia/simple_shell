@@ -1,96 +1,97 @@
-#include "main.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <sys/wait.h>
+
+#define MAX_TOKENS 1024
+#define BUFFER_SIZE 1024
+
+char **parseInput(char *buffer);
+void executeCommand(char **command);
 
 int main(int argc, char **argv)
 {
-    char *buffer, **array;
-    int counter = 0;
+    char *buffer;
+    char **command;
 
     while (1)
     {
-        counter++;
-        if (isatty(STDIN_FILENO))
-            write(1, "$ ", 2);
+        printf("$ ");
+        buffer = malloc(sizeof(char) * BUFFER_SIZE);
 
-        buffer = _getline();
+        if (!buffer)
+        {
+            perror("malloc failed");
+            exit(EXIT_FAILURE);
+        }
 
-        if (buffer[0] == '\0')
+        if (fgets(buffer, BUFFER_SIZE, stdin) == NULL)
         {
             free(buffer);
             continue;
         }
 
-        array = parser(buffer);
+        buffer[strcspn(buffer, "\n")] = '\0';
 
-        if (array == NULL)
+        command = parseInput(buffer);
+
+        if (command == NULL)
         {
             free(buffer);
             continue;
         }
 
-        if (strcmp(array[0], "exit") == 0)
+        if (strcmp(command[0], "exit") == 0)
         {
             int status = 0;
-            if (array[1] != NULL)
-                status = atoi(array[1]);
+            if (command[1] != NULL)
+                status = atoi(command[1]);
 
             free(buffer);
-            free(array);
+            free(command);
             exit(status);
         }
 
-        if (check_cmd(array[0]) == 0)
-        {
-            exec_builtin(array, counter, argv[0]);
-        }
-        else
-        {
-            execute(array, counter, argv, buffer);
-        }
+        executeCommand(command);
 
-        free(array);
+        free(command);
         free(buffer);
     }
 
     return 0;
 }
 
-char **parser(char *buffer)
+char **parseInput(char *buffer)
 {
-    char **cmd, *token;
-    int i = 0;
-
-    if (buffer == NULL)
-        return NULL;
-
-    cmd = malloc(sizeof(char *) * 1024);
-    if (cmd == NULL)
+    char **tokens = malloc(sizeof(char *) * MAX_TOKENS);
+    if (!tokens)
     {
         perror("malloc failed");
-        return NULL;
+        exit(EXIT_FAILURE);
     }
 
-    token = strtok(buffer, " \n");
+    char *token;
+    int tokenCount = 0;
+
+    token = strtok(buffer, " \t\n");
     while (token != NULL)
     {
-        cmd[i] = strdup(token);
-        if (cmd[i] == NULL)
+        tokens[tokenCount] = strdup(token);
+        if (!tokens[tokenCount])
         {
             perror("strdup failed");
-            free(cmd);
-            return NULL;
+            exit(EXIT_FAILURE);
         }
-        i++;
-        token = strtok(NULL, " \n");
+        tokenCount++;
+        token = strtok(NULL, " \t\n");
     }
-    cmd[i] = NULL;
+    tokens[tokenCount] = NULL;
 
-    return cmd;
+    return tokens;
 }
 
-void execute(char **array, int counter, char **argv, char *buffer)
+void executeCommand(char **command)
 {
     pid_t pid;
     int status;
@@ -99,16 +100,13 @@ void execute(char **array, int counter, char **argv, char *buffer)
     if (pid == -1)
     {
         perror("fork failed");
-        return;
+        exit(EXIT_FAILURE);
     }
     else if (pid == 0)
     {
-        if (_strncmp(array[0], "./", 2) != 0 && _strncmp(array[0], "/", 1) != 0)
-            path_finder(&array[0]);
-
-        if (execve(array[0], array, environ) == -1)
+        if (execvp(command[0], command) == -1)
         {
-            printE(counter, array[0], argv[0]);
+            perror("execvp failed");
             exit(EXIT_FAILURE);
         }
     }
