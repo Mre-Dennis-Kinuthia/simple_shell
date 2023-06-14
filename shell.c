@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include "builtins.h"
+#include "command_handler.h"
 
 #define MAX_TOKENS 1024
 #define BUFFER_SIZE 1024
