@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/types.h>
 #include <sys/wait.h>
 #include "builtins.h"
 #include "command_handler.h"
@@ -35,6 +36,13 @@ int main(int argc, char **argv)
         }
 
         buffer[strcspn(buffer, "\n")] = '\0';
+
+        // Ignore comments
+        if (buffer[0] == '#')
+        {
+            free(buffer);
+            continue;
+        }
 
         command = parseInput(buffer);
 
@@ -93,13 +101,16 @@ char **parseInput(char *buffer)
     return tokens;
 }
 
-void executeCommand(char **command) {
-    if (strcmp(command[0], "setenv") == 0) {
+void executeCommand(char **command)
+{
+    if (strcmp(command[0], "setenv") == 0)
+    {
         setenv_builtin(command);
         return;
     }
 
-    if (strcmp(command[0], "unsetenv") == 0) {
+    if (strcmp(command[0], "unsetenv") == 0)
+    {
         unsetenv_builtin(command);
         return;
     }
@@ -108,15 +119,21 @@ void executeCommand(char **command) {
     int status;
 
     pid = fork();
-    if (pid == -1) {
+    if (pid == -1)
+    {
         perror("fork failed");
         exit(EXIT_FAILURE);
-    } else if (pid == 0) {
-        if (execvp(command[0], command) == -1) {
+    }
+    else if (pid == 0)
+    {
+        if (execvp(command[0], command) == -1)
+        {
             perror("execvp failed");
             exit(EXIT_FAILURE);
         }
-    } else {
+    }
+    else
+    {
         waitpid(pid, &status, 0);
     }
 }
